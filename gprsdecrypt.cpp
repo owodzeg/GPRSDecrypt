@@ -5,2095 +5,1976 @@
 
 using namespace std;
 
-std::ifstream::pos_type filesize(const char* filename)
+int main(int argc, char *argv[])
 {
-    std::ifstream in(filename, std::ifstream::ate | std::ifstream::binary);
-    return in.tellg();
-}
+  uint32_t GPRS_start = 0x0;
+  uint32_t GARC_start = 0xA210D0;
+  // uint32_t MAGIC_start = 0x8B07558;
+  // uint32_t MIPS_start = 0x88059B0;
 
-void nop()
-{
+  uint32_t v0 = 0x80;       //0x1CFD8;
+  uint32_t v1 = 0x0;        //0x0;
+  uint32_t a0 = GARC_start; //GARC_start;
+  uint32_t a1 = 0x9;        //0x8;
+  uint32_t a2 = 0xA;        //0x0;
+  uint32_t a3 = 0x8;        //0x8;
+  uint32_t t0 = 0x1;        //0x0;
+  uint32_t t1 = 0x0;        //0x0;
+  uint32_t t2 = -0x100;     //0x0;
+  uint32_t t3 = 0x0;        //0x0;
+  uint32_t t4 = 0x0;        //0x0;
+  uint32_t at = 0x0;        //0x0;
 
-}
+  uint32_t cur_addr = 0;
 
-int main(int argc, char* argv[])
-{
-    uint32_t zero = 0x0;
-    uint32_t v0 = 0x1CFD8;
-    uint32_t v1 = 0x0;
-    uint32_t a0 = 0x9F6B210;
-    uint32_t a1 = 0x954A148;
-    uint32_t a2 = 0x0;
-    uint32_t a3 = 0x954A148;
-    uint32_t s0 = 0x1;
-    uint32_t s1 = 0x9FFF5F8;
-    uint32_t s2 = 0x954A140;
-    uint32_t s3 = 0x9F6B210;
-    uint32_t s4 = 0x541E0;
-    uint32_t s5 = 0x1CFD8;
-    uint32_t s6 = 0x8BB7D80;
-    uint32_t s7 = 0x8BB7D84;
-    uint32_t t0 = 0x0;
-    uint32_t t1 = 0x0;
-    uint32_t t2 = 0x0;
-    uint32_t t3 = 0x0;
-    uint32_t t4 = 0x0;
-    uint32_t at = 0x0;
+  bool running = true;
+  bool jump = false;
+  int jump_count = 0;
+  uint32_t jump_addr = 0x0;
 
-    uint32_t GPRS_start = 0x954A140;
-    uint32_t GARC_start = 0x9F6B210;
-    uint32_t MAGIC_start = 0x8B07558;
-    uint32_t MIPS_start = 0x88059B0;
+  // string filename = argv[1];
+  string filename = argv[1];
+  string garc_filename = filename.substr(filename.find_last_of("\\") + 1);
+  garc_filename = garc_filename.substr(0, garc_filename.find_first_of(".")) + ".GARC";
 
-    uint32_t cur_addr = 0x88059B0;
+  garc_filename = filename;
 
-    bool running = true;
-    bool jump = false;
-    int jump_count = 0;
-    uint32_t jump_addr = 0x0;
+  string workdir = argv[0];
+  workdir = workdir.substr(0, workdir.find_last_of("\\") + 1);
 
-    string filename = argv[1];
-    string garc_filename = filename.substr(filename.find_last_of("\\")+1);
-    garc_filename = garc_filename.substr(0,garc_filename.find_first_of(".")) + ".GARC";
+  //cout << filename << endl;
+  //cout << garc_filename << endl;
+  //cout << workdir << endl;
 
-    string workdir = argv[0];
-    workdir = workdir.substr(0,workdir.find_last_of("\\")+1);
+  std::ifstream in(filename.c_str(), ios::binary);
+  std::vector<char> GPRS_file((std::istreambuf_iterator<char>(in)),
+                              std::istreambuf_iterator<char>());
+  in.close();
 
-    cout << filename << endl;
-    cout << garc_filename << endl;
-    cout << workdir << endl;
+  std::vector<uint32_t> MAGIC_file = {0x350,0x348,0x340,0x338,0x330,0x328,0x320,0x318,0x86C,0x864,0x85C,0x854,0x84C,0x844,0x83C,0x834};
+  std::vector<char> GARC_file;
 
-    string magicdir = workdir+"magic.dat";
+  int ins = 0;
 
-    std::ifstream in(filename.c_str(), ios::binary);
-    std::vector<char> GPRS_file((std::istreambuf_iterator<char>(in)),
-    std::istreambuf_iterator<char>());
-    in.close();
+  while (running)
+  {
+    ///cout << cur_addr << endl;
+    ins++;
+    //cout << "0x" << std::hex << cur_addr << std::dec << endl;
+    //Sleep(100);
 
-    std::vector<uint32_t> MAGIC_file;
-
-    int m_size = filesize(magicdir.c_str()) / 4;
-
-    std::ifstream inn(magicdir.c_str(), ios::binary);
-
-    for(int i=0; i<m_size; i++)
+    switch (cur_addr)
     {
-        uint32_t buf;
-
-        inn.seekg(0x4 * i);
-        inn.read(reinterpret_cast<char*>(&buf), sizeof(uint32_t));
-
-        MAGIC_file.push_back(buf);
-    }
-
-    inn.close();
-
-    std::vector<char> GARC_file;
-
-    while(running)
-    {
-        ///cout << cur_addr << endl;
-
-        switch(cur_addr)
+        case 0x0:
         {
-            case 142629296:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629300:
-            {
-            a1 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629304:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629308:
-            {
-            t0 = int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629312:
-            {
-            t2 = int32_t(-0x100);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629316:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629320:
-            {
-            if(v0 != zero)
-            {
-              jump = true;
-              jump_addr = 0x088059E4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629324:
-            {
-            t1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629328:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629332:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629336:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629340:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629344:
-            {
-            t1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629348:
-            {
-            if(t1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x088059F8;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629352:
-            {
-            t3 = v0>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629356:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629360:
-            {
-            jump = true;
-            jump_addr = 0x08805A00;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629364:
-            {
-            t1 = t0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629368:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629372:
-            {
-            t1 = int32_t(0);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629376:
-            {
-            if(t1 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805A20;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629380:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629384:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              t1 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              t1 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629388:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629392:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t1;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629396:
-            {
-            a0 = a0+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629400:
-            {
-            jump = true;
-            jump_addr = 0x08805D14;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629404:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629408:
-            {
-            if(t3 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805A3C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629412:
-            {
-            t1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629416:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629420:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629424:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629428:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629432:
-            {
-            t1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629436:
-            {
-            if(t1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805A50;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629440:
-            {
-            v0 = v0>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629444:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629448:
-            {
-            jump = true;
-            jump_addr = 0x08805A58;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629452:
-            {
-            t1 = t0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629456:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629460:
-            {
-            t1 = int32_t(0);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629464:
-            {
-            if(t1 != t0)
-            {
-              jump = true;
-              jump_addr = 0x08805B54;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629468:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629472:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              t1 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              t1 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629476:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629480:
-            {
-            t1 = t1|t2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629484:
-            {
-            if(v0 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805A84;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629488:
-            {
-            t1 = t1<<0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629492:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629496:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629500:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629504:
-            {
-            v1 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629508:
-            {
-            t3 = a3&v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629512:
-            {
-            if(t3 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805A9C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629516:
-            {
-            v1 = v1>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629520:
-            {
-            t3 = v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629524:
-            {
-            jump = true;
-            jump_addr = 0x08805AA4;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629528:
-            {
-            t1 = t1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629532:
-            {
-            t3 = v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629536:
-            {
-            t1 = t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629540:
-            {
-            if(v1 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805ABC;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629544:
-            {
-            t1 = t1<<0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629548:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629552:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629556:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629560:
-            {
-            t3 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629564:
-            {
-            v0 = a3&t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629568:
-            {
-            if(v0 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805AD4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629572:
-            {
-            t3 = t3>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629576:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629580:
-            {
-            jump = true;
-            jump_addr = 0x08805ADC;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629584:
-            {
-            t1 = t1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629588:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629592:
-            {
-            t1 = t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629596:
-            {
-            if(t3 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805AF4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629600:
-            {
-            t1 = t1<<0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629604:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629608:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629612:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629616:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629620:
-            {
-            v1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629624:
-            {
-            if(v1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805B0C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629628:
-            {
-            t3 = v0>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629632:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629636:
-            {
-            jump = true;
-            jump_addr = 0x08805B14;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629640:
-            {
-            t1 = t1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629644:
-            {
-            v0 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629648:
-            {
-            t1 = t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629652:
-            {
-            if(t3 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805B2C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629656:
-            {
-            t1 = t1<<0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629660:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629664:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629668:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629672:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629676:
-            {
-            t3 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629680:
-            {
-            if(t3 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805B44;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629684:
-            {
-            v0 = v0>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629688:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629692:
-            {
-            jump = true;
-            jump_addr = 0x08805B4C;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629696:
-            {
-            t1 = t1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629700:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629704:
-            {
-            t1 = t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629708:
-            {
-            jump = true;
-            jump_addr = 0x08805B70;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629712:
-            {
-            t1 = t1+ int32_t(-0xFF);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629716:
-            {
-            if((a1 >= 156541248) && (a1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a1 - 156541248;
-              t1 = GPRS_file[t_addr];
-            }
-            if(a1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a1 - 167162384;
-              t1 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629720:
-            {
-            if(t1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805B68;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629724:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629728:
-            {
-            jump = true;
-            jump_addr = 0x08805B70;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629732:
-            {
-            t1 = t1|t2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629736:
-            {
-            jump = true;
-            jump_addr = 0x08805D1C;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629740:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629744:
-            {
-            t3 = t0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629748:
-            {
-            if(v0 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805B90;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629752:
-            {
-            v0 = a3&v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629756:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629760:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629764:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629768:
-            {
-            v1 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629772:
-            {
-            v0 = a3&v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629776:
-            {
-            if(v0 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805BA4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629780:
-            {
-            v1 = v1>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629784:
-            {
-            v0 = v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629788:
-            {
-            jump = true;
-            jump_addr = 0x08805BAC;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629792:
-            {
-            t4 = t0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629796:
-            {
-            v0 = v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629800:
-            {
-            t4 = int32_t(0);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629804:
-            {
-            if(t4 != t0)
-            {
-              jump = true;
-              jump_addr = 0x08805BF4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629808:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629812:
-            {
-            if(v1 != zero)
-            {
-              jump = true;
-              jump_addr = 0x08805BCC;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629816:
-            {
-            t3 = t3<<0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629820:
-            {
-            if((a2 >= 156541248) && (a2 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + a2 - 156541248;
-              a3 = GPRS_file[t_addr];
-            }
-            if(a2 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + a2 - 167162384;
-              a3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629824:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629828:
-            {
-            a1 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629832:
-            {
-            v0 = int32_t(0x80);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629836:
-            {
-            v1 = a3&v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629840:
-            {
-            if(v1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805BE4;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629844:
-            {
-            v0 = v0>>0x1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629848:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629852:
-            {
-            jump = true;
-            jump_addr = 0x08805BEC;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629856:
-            {
-            t3 = t3+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629860:
-            {
-            v1 = v0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629864:
-            {
-            t3 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629868:
-            {
-            jump = true;
-            jump_addr = 0x08805B74;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629872:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629876:
-            {
-            if(t3 < 0x7)
-            {
-              a2 = 1;
-            }
-            else
-            {
-              a2 = 0;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629880:
-            {
-            if(a2 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805C28;
-              cur_addr += 0x4;
-            }
-            else
-            {
-              cur_addr += 0x8;
-            }
-            break;
-            }
-
-            case 142629884:
-            {
-            t3 = t3+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629888:
-            {
-            if(t3 < 0)
-            {
-              jump = true;
-              jump_addr = 0x08805D14;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629892:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629896:
-            {
-            v1 = a0+t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629900:
-            {
-            if((v1 >= 156541248) && (v1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + v1 - 156541248;
-              v1 = GPRS_file[t_addr];
-            }
-            if(v1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + v1 - 167162384;
-              v1 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629904:
-            {
-            t3 = t3+ int32_t(-0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629908:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = v1;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629912:
-            {
-            if((int32_t)t3 >= 0)
-            {
-              jump = true;
-              jump_addr = 0x08805C08;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629916:
-            {
-            a0 = a0+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629920:
-            {
-            jump = true;
-            jump_addr = 0x08805D14;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629924:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629928:
-            {
-            a2 = t3>>0x3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629932:
-            {
-            t3 = t3&0x7;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629936:
-            {
-            v1 = t3+ int32_t(-0x8);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629940:
-            {
-            a0 = a0+v1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629944:
-            {
-            if(t3 < 0x8)
-            {
-              v1 = 1;
-            }
-            else
-            {
-              v1 = 0;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629948:
-            {
-            if(v1 == zero)
-            {
-              jump = true;
-              jump_addr = 0x08805C5C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629952:
-            {
-            t1 = a0+t1;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629956:
-            {
-            t3 = t3<<0x2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629960:
-            {
-            at = 0x8B00000;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629964:
-            {
-            at = at+t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629968:
-            {
-            uint32_t tmp;
-            uint32_t t_addr = 0x7558 + at - 145782104;
-            at = (int32_t)MAGIC_file[(t_addr/4)];
-
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629972:
-            {
-            jump = true;
-            jump_addr = at;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629976:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629980:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x0 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x0 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629984:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629988:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x1 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x1 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629992:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142629996:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x2 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x2 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630000:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630004:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x3 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x3 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630008:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630012:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x4 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x4 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630016:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630020:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x5 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x5 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630024:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630028:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x6 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x6 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630032:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = t3;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630036:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x7 + t1 - 156541248;
-              v1 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x7 + t1 - 167162384;
-              v1 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630040:
-            {
-            t3 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630044:
-            {
-            a2 = a0+ int32_t(0x8);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630048:
-            {
-            if(a0 >= 167162384)
-            {
-              char tmp = v1;
-              GARC_file.push_back(tmp);
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630052:
-            {
-            t1 = t1+ int32_t(0x8);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630056:
-            {
-            a0 = t3+ int32_t(-0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630060:
-            {
-            t3 = a0;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630064:
-            {
-            a0 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630068:
-            {
-            a2 = t3;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630072:
-            {
-            if((int32_t)a2 >= 0)
-            {
-              jump = true;
-              jump_addr = 0x08805C5C;
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630076:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630080:
-            {
-            jump = true;
-            jump_addr = 0x08805D14;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630084:
-            {
-            a2 = a1+ int32_t(0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630088:
-            {
-            jump = true;
-            jump_addr = 0x08805C68;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630092:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x1 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x1 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630096:
-            {
-            jump = true;
-            jump_addr = 0x08805C70;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630100:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x2 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x2 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630104:
-            {
-            jump = true;
-            jump_addr = 0x08805C78;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630108:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x3 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x3 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630112:
-            {
-            jump = true;
-            jump_addr = 0x08805C80;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630116:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x4 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x4 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630120:
-            {
-            jump = true;
-            jump_addr = 0x08805C88;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630124:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x5 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x5 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630128:
-            {
-            jump = true;
-            jump_addr = 0x08805C90;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630132:
-            {
-            if((t1 >= 156541248) && (t1 < 167162384))
-            {
-              uint32_t t_addr = 0x6 + t1 - 156541248;
-              t3 = GPRS_file[t_addr];
-            }
-            if(t1 >= 167162384)
-            {
-              uint32_t t_addr = 0x6 + t1 - 167162384;
-              t3 = (int32_t)GARC_file[t_addr];
-            }
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630136:
-            {
-            jump = true;
-            jump_addr = 0x08805C94;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630140:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630144:
-            {
-            t3 = a2;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630148:
-            {
-            a2 = a0+ int32_t(0x8);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630152:
-            {
-            t1 = t1+ int32_t(0x8);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630156:
-            {
-            jump = true;
-            jump_addr = 0x08805CAC;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630160:
-            {
-            a0 = t3+ int32_t(-0x1);
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630164:
-            {
-            jump = true;
-            jump_addr = 0x088059C8;
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630168:
-            {
-            nop();
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630172:
-            {
-            cur_addr += 0x4;
-            break;
-            }
-
-            case 142630176:
-            {
-            nop();
-            running = false;
-            cur_addr += 0x4;
-            break;
-            }
+          a3 = GPRS_file[0x8];
+          // a1 = a1 + int32_t(0x1);
+          // v0 = int32_t(0x80);
+          // t0 = int32_t(0x1);
+          // t2 = int32_t(-0x100);
+          // a2 = a1 + int32_t(0x1);
+          // cout << a2 << endl;
+          cur_addr = 0x18;
+          break;
         }
 
-        if(jump_count >= 1)
+        case 0x18:
         {
-            jump_count = 0;
-            cur_addr = jump_addr;
+          // cout << ".";
+          if (v0 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x34;
+          }
+          cur_addr += 0x4;
+          break;
         }
 
-        if(jump)
+        case 0x1C:
         {
-            jump = false;
-            jump_count = 1;
+          t1 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x20:
+        {
+          if ((a1 >= GPRS_start) && (a1 < GARC_start))
+          {
+            a3 = GPRS_file[a1];
+          }
+
+          if (a1 >= GARC_start)
+          {
+            uint32_t t_addr = a1 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+
+          a1 = a2;
+          v0 = int32_t(0x80);
+          a2 = a1 + int32_t(0x1);
+          t1 = a3 & v0;
+
+          cur_addr += 0x14;
+          break;
+        }
+
+        case 0x34:
+        {
+          if (t1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x48;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x38:
+        {
+          t3 = v0 >> 0x1;
+          v0 = t3;
+
+          cur_addr += 0x8;
+          break;
+        }
+
+        case 0x40:
+        {
+          jump = true;
+          jump_addr = 0x50;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x44:
+        {
+          t1 = t0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x48:
+        {
+          v0 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x4C:
+        {
+          t1 = int32_t(0);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x50:
+        {
+          if (t1 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x70;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x54:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x58:
+        {
+          if ((a1 >= GPRS_start) && (a1 < GARC_start))
+          {
+            t1 = GPRS_file[a1];
+          }
+          if (a1 >= GARC_start)
+          {
+            uint32_t t_addr = a1 - GARC_start;
+            t1 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x5C:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x60:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t1;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x64:
+        {
+          a0 = a0 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x68:
+        {
+          jump = true;
+          jump_addr = 0x364;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x6C:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x70:
+        {
+          if (t3 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x8C;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x74:
+        {
+          t1 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x78:
+        {
+          if ((a1 >= GPRS_start) && (a1 < GARC_start))
+          {
+            a3 = GPRS_file[a1];
+          }
+          if (a1 >= GARC_start)
+          {
+            uint32_t t_addr = a1 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x7C:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x80:
+        {
+          v0 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x84:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x88:
+        {
+          t1 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x8C:
+        {
+          if (t1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0xA0;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x90:
+        {
+          v0 = v0 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x94:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x98:
+        {
+          jump = true;
+          jump_addr = 0xA8;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x9C:
+        {
+          t1 = t0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xA0:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xA4:
+        {
+          t1 = int32_t(0);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xA8:
+        {
+          if (t1 != t0)
+          {
+            jump = true;
+            jump_addr = 0x1A4;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xAC:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xB0:
+        {
+          if ((a1 >= GPRS_start) && (a1 < GARC_start))
+          {
+            t1 = GPRS_file[a1];
+          }
+          if (a1 >= GARC_start)
+          {
+            uint32_t t_addr = a1 - GARC_start;
+            t1 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xB4:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xB8:
+        {
+          t1 = t1 | t2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xBC:
+        {
+          if (v0 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0xD4;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xC0:
+        {
+          t1 = t1 << 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xC4:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xC8:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xCC:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xD0:
+        {
+          v1 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xD4:
+        {
+          t3 = a3 & v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xD8:
+        {
+          if (t3 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0xEC;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xDC:
+        {
+          v1 = v1 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xE0:
+        {
+          t3 = v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xE4:
+        {
+          jump = true;
+          jump_addr = 0xF4;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xE8:
+        {
+          t1 = t1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xEC:
+        {
+          t3 = v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xF0:
+        {
+          t1 = t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xF4:
+        {
+          if (v1 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x10C;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xF8:
+        {
+          t1 = t1 << 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0xFC:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x100:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x104:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x108:
+        {
+          t3 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x10C:
+        {
+          v0 = a3 & t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x110:
+        {
+          if (v0 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x124;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x114:
+        {
+          t3 = t3 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x118:
+        {
+          v0 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x11C:
+        {
+          jump = true;
+          jump_addr = 0x12C;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x120:
+        {
+          t1 = t1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x124:
+        {
+          v0 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x128:
+        {
+          t1 = t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x12C:
+        {
+          if (t3 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x144;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x130:
+        {
+          t1 = t1 << 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x134:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x138:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x13C:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x140:
+        {
+          v0 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x144:
+        {
+          v1 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x148:
+        {
+          if (v1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x15C;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x14C:
+        {
+          t3 = v0 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x150:
+        {
+          v0 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x154:
+        {
+          jump = true;
+          jump_addr = 0x164;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x158:
+        {
+          t1 = t1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x15C:
+        {
+          v0 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x160:
+        {
+          t1 = t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x164:
+        {
+          if (t3 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x17C;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x168:
+        {
+          t1 = t1 << 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x16C:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x170:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x174:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x178:
+        {
+          v0 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x17C:
+        {
+          t3 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x180:
+        {
+          if (t3 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x194;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x184:
+        {
+          v0 = v0 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x188:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x18C:
+        {
+          jump = true;
+          jump_addr = 0x19C;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x190:
+        {
+          t1 = t1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x194:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x198:
+        {
+          t1 = t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x19C:
+        {
+          jump = true;
+          jump_addr = 0x1C0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1A0:
+        {
+          t1 = t1 + int32_t(-0xFF);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1A4:
+        {
+          if ((a1 >= GPRS_start) && (a1 < GARC_start))
+          {
+            t1 = GPRS_file[a1];
+          }
+          if (a1 >= GARC_start)
+          {
+            uint32_t t_addr = a1 - GARC_start;
+            t1 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1A8:
+        {
+          if (t1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x1B8;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1AC:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1B0:
+        {
+          jump = true;
+          jump_addr = 0x1C0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1B4:
+        {
+          t1 = t1 | t2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1B8:
+        {
+          jump = true;
+          jump_addr = 0x36C;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1BC:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1C0:
+        {
+          t3 = t0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1C4:
+        {
+          if (v0 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x1E0;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1C8:
+        {
+          v0 = a3 & v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1CC:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1D0:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1D4:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1D8:
+        {
+          v1 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1DC:
+        {
+          v0 = a3 & v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1E0:
+        {
+          if (v0 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x1F4;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1E4:
+        {
+          v1 = v1 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1E8:
+        {
+          v0 = v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1EC:
+        {
+          jump = true;
+          jump_addr = 0x1FC;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1F0:
+        {
+          t4 = t0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1F4:
+        {
+          v0 = v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1F8:
+        {
+          t4 = int32_t(0);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x1FC:
+        {
+          if (t4 != t0)
+          {
+            jump = true;
+            jump_addr = 0x244;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x200:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x204:
+        {
+          if (v1 != 0x0)
+          {
+            jump = true;
+            jump_addr = 0x21C;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x208:
+        {
+          t3 = t3 << 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x20C:
+        {
+          if ((a2 >= GPRS_start) && (a2 < GARC_start))
+          {
+            a3 = GPRS_file[a2];
+          }
+          if (a2 >= GARC_start)
+          {
+            uint32_t t_addr = a2 - GARC_start;
+            a3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x210:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x214:
+        {
+          a1 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x218:
+        {
+          v0 = int32_t(0x80);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x21C:
+        {
+          v1 = a3 & v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x220:
+        {
+          if (v1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x234;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x224:
+        {
+          v0 = v0 >> 0x1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x228:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x22C:
+        {
+          jump = true;
+          jump_addr = 0x23C;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x230:
+        {
+          t3 = t3 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x234:
+        {
+          v1 = v0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x238:
+        {
+          t3 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x23C:
+        {
+          jump = true;
+          jump_addr = 0x1C4;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x240:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x244:
+        {
+          if (t3 < 0x7)
+          {
+            a2 = 1;
+          }
+          else
+          {
+            a2 = 0;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x248:
+        {
+          if (a2 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x278;
+            cur_addr += 0x4;
+          }
+          else
+          {
+            cur_addr += 0x8;
+          }
+          break;
+        }
+
+        case 0x24C:
+        {
+          t3 = t3 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x250:
+        {
+          if (t3 < 0)
+          {
+            jump = true;
+            jump_addr = 0x364;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x254:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x258:
+        {
+          v1 = a0 + t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x25C:
+        {
+          if ((v1 >= GPRS_start) && (v1 < GARC_start))
+          {
+            v1 = GPRS_file[v1];
+          }
+          if (v1 >= GARC_start)
+          {
+            uint32_t t_addr = v1 - GARC_start;
+            v1 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x260:
+        {
+          t3 = t3 + int32_t(-0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x264:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = v1;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x268:
+        {
+          if ((int32_t)t3 >= 0)
+          {
+            jump = true;
+            jump_addr = 0x258;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x26C:
+        {
+          a0 = a0 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x270:
+        {
+          jump = true;
+          jump_addr = 0x364;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x274:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x278:
+        {
+          a2 = t3 >> 0x3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x27C:
+        {
+          t3 = t3 & 0x7;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x280:
+        {
+          v1 = t3 + int32_t(-0x8);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x284:
+        {
+          a0 = a0 + v1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x288:
+        {
+          if (t3 < 0x8)
+          {
+            v1 = 1;
+          }
+          else
+          {
+            v1 = 0;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x28C:
+        {
+          if (v1 == 0x0)
+          {
+            jump = true;
+            jump_addr = 0x2AC;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x290:
+        {
+          t1 = a0 + t1;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x294:
+        {
+          t3 = t3 << 0x2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x298:
+        {
+          at = 0x0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x29C:
+        {
+          at = at + t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2A0:
+        {
+          uint32_t tmp;
+          // cout << at / 4 << endl;
+          at = MAGIC_file[at / 4];
+
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2A4:
+        {
+          jump = true;
+          jump_addr = at;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2A8:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2AC:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            t3 = GPRS_file[t1];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2B0:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2B4:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x1 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x1 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2B8:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2BC:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x2 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x2 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2C0:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2C4:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x3 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x3 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2C8:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2CC:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x4 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x4 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2D0:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2D4:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x5 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x5 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2D8:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2DC:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x6 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x6 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2E0:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = t3;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2E4:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x7 + t1;
+            v1 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x7 + t1 - GARC_start;
+            v1 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2E8:
+        {
+          t3 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2EC:
+        {
+          a2 = a0 + int32_t(0x8);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2F0:
+        {
+          if (a0 >= GARC_start)
+          {
+            char tmp = v1;
+            GARC_file.push_back(tmp);
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2F4:
+        {
+          t1 = t1 + int32_t(0x8);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2F8:
+        {
+          a0 = t3 + int32_t(-0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x2FC:
+        {
+          t3 = a0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x300:
+        {
+          a0 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x304:
+        {
+          a2 = t3;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x308:
+        {
+          if ((int32_t)a2 >= 0)
+          {
+            jump = true;
+            jump_addr = 0x2AC;
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x30C:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x310:
+        {
+          jump = true;
+          jump_addr = 0x364;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x314:
+        {
+          a2 = a1 + int32_t(0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x318:
+        {
+          jump = true;
+          jump_addr = 0x2B8;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x31C:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x1 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x1 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x320:
+        {
+          jump = true;
+          jump_addr = 0x2C0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x324:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x2 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x2 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x328:
+        {
+          jump = true;
+          jump_addr = 0x2C8;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x32C:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x3 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x3 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x330:
+        {
+          jump = true;
+          jump_addr = 0x2D0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x334:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x4 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x4 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x338:
+        {
+          jump = true;
+          jump_addr = 0x2D8;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x33C:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x5 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x5 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x340:
+        {
+          jump = true;
+          jump_addr = 0x2E0;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x344:
+        {
+          if ((t1 >= GPRS_start) && (t1 < GARC_start))
+          {
+            uint32_t t_addr = 0x6 + t1;
+            t3 = GPRS_file[t_addr];
+          }
+          if (t1 >= GARC_start)
+          {
+            uint32_t t_addr = 0x6 + t1 - GARC_start;
+            t3 = (int32_t)GARC_file[t_addr];
+          }
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x348:
+        {
+          jump = true;
+          jump_addr = 0x2E4;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x34C:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x350:
+        {
+          t3 = a2;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x354:
+        {
+          a2 = a0 + int32_t(0x8);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x358:
+        {
+          t1 = t1 + int32_t(0x8);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x35C:
+        {
+          jump = true;
+          jump_addr = 0x2FC;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x360:
+        {
+          a0 = t3 + int32_t(-0x1);
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x364:
+        {
+          jump = true;
+          jump_addr = 0x18;
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x368:
+        {
+          cur_addr += 0x4;
+          break;
+        }
+
+        case 0x36C:
+        {
+          running = false;
+          break;
         }
     }
 
-    ofstream garc_out(garc_filename.c_str(),ios::binary);
-
-    for(int i=0; i<GARC_file.size(); i++)
+    if(jump_count >= 1)
     {
-        garc_out.put(GARC_file[i]);
+      jump_count = 0;
+      cur_addr = jump_addr;
+
+      //cout << "Jump to 0x" << std::hex << jump_addr << std::dec << endl;
     }
 
-    garc_out.close();
+    if(jump)
+    {
+      jump = false;
+      jump_count = 1;
+    }
+  }
 
-    return 0;
+  //cout << "Program took " << ins << " instructions to decompress this file" << endl;
+
+  ofstream garc_out(garc_filename.c_str(), ios::binary);
+
+  for(int i=0; i<GARC_file.size(); i++)
+  {
+    garc_out.put(GARC_file[i]);
+  }
+
+  garc_out.close();
+
+  //system("pause");
+
+  return 0;
 }
